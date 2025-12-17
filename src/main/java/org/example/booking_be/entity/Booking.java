@@ -12,13 +12,11 @@ import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.LocalDateTime;
 import java.util.List;
-
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Document(collection = "bookings")
 public class Booking {
-
     @Id
     private String id;
     private String userId;
@@ -29,13 +27,4 @@ public class Booking {
 
     private LocalDateTime createdAt;
 
-//    public Booking(String id, String userId, String showtimeId, List<String> seats, double totalAmount, BookingStatus status, LocalDateTime createdAt) {
-//        this.id = id;
-//        this.userId = userId;
-//        this.showtimeId = showtimeId;
-//        this.seats = seats;
-//        this.totalAmount = totalAmount;
-//        this.status = status;
-//        this.createdAt = createdAt;
-//    }
 }
