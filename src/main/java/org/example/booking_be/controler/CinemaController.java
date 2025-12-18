@@ -32,7 +32,7 @@ public class CinemaController {
     }
 
     @PostMapping
-    public ApiResponse<CinemaResponse> createCinema(CinemaCreateRequest request){
+    public ApiResponse<CinemaResponse> createCinema( @RequestBody CinemaCreateRequest request){
         CinemaResponse cinema = cinemaService.createCinema(request);
         return ApiResponse.<CinemaResponse>builder().result(cinema).build();
     }
@@ -42,7 +42,7 @@ public class CinemaController {
         return ApiResponse.<Void>builder().result(null).build();
     }
     @PutMapping("/{id}")
-    public ApiResponse<CinemaResponse> updateCinema(@PathVariable String id, CinemaUpdateRequest request){
+    public ApiResponse<CinemaResponse> updateCinema(@PathVariable String id,@RequestBody CinemaUpdateRequest request){
         CinemaResponse cinema = cinemaService.updateCinema(id, request);
         return ApiResponse.<CinemaResponse>builder().result(cinema).build();
     }
