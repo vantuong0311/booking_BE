@@ -26,7 +26,14 @@ public enum ErrorCode {
     PRODUCT_OUT_OF_STOCK(2501, "Product is out of stock", HttpStatus.BAD_REQUEST),
     PRODUCT_INSUFFICIENT_QUANTITY(2502, "Not enough product inventory", HttpStatus.BAD_REQUEST),
     VOUCHER_OUT_OF_STOCK(2503, "Voucher is out of stock", HttpStatus.BAD_REQUEST),
-    FORBIDDEN(1403, "Access Is Not Allowed", HttpStatus.FORBIDDEN);
+    FORBIDDEN(1403, "Access Is Not Allowed", HttpStatus.FORBIDDEN),
+
+    SEAT_ALREADY_BOOKED(400, "Seat has already been booked", HttpStatus.BAD_REQUEST),
+
+    SEAT_ALREADY_HELD(400, "Seat is being held by another user", HttpStatus.BAD_REQUEST),
+
+    SEAT_NOT_HELD(400, "Seat is not held by user", HttpStatus.BAD_REQUEST);
+
     int code;
     String message;
     HttpStatus httpStatus;
