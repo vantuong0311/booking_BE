@@ -194,4 +194,9 @@ public class ShowTimeService {
         return result;
     }
 
+    public Showtime getShowtimeByIdRaw(String id) {
+        return showtimeReponsitory.findById(id)
+                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND));
+    }
+
 }
