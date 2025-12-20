@@ -32,7 +32,9 @@ public enum ErrorCode {
 
     SEAT_ALREADY_HELD(400, "Seat is being held by another user", HttpStatus.BAD_REQUEST),
 
-    SEAT_NOT_HELD(400, "Seat is not held by user", HttpStatus.BAD_REQUEST);
+    SEAT_NOT_HELD(400, "Seat is not held by user", HttpStatus.BAD_REQUEST),
+    INVALID_REQUEST(400, "Invalid request", HttpStatus.BAD_REQUEST);
+
 
     int code;
     String message;
