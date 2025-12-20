@@ -9,15 +9,15 @@ import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
 
 @Mapper(componentModel = "spring")
-
 public interface ShowtimeMapper {
+
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "bookedSeats", ignore = true)
     @Mapping(target = "holdingSeats", ignore = true)
     Showtime toShowTime(ShowTimeCreateRequest request);
-//    @Mapping(target = "holdingSeats", ignore = true)
+
     ShowtimeResponse toResponse(Showtime showtime);
-//    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
+
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "movieId", ignore = true)
     @Mapping(target = "roomId", ignore = true)
@@ -25,6 +25,5 @@ public interface ShowtimeMapper {
     @Mapping(target = "holdingSeats", ignore = true)
     void updateShowtime(ShowtimeUpdateRequest request,
                         @MappingTarget Showtime showtime);
-
-
 }
+

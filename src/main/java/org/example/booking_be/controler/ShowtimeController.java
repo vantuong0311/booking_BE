@@ -4,11 +4,11 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.example.booking_be.dto.ApiResponse;
+import org.example.booking_be.dto.request.HoldSeatRequest;
 import org.example.booking_be.dto.request.ShowTimeCreateRequest;
 import org.example.booking_be.dto.request.ShowtimeUpdateRequest;
-import org.example.booking_be.dto.responce.SeatResponse;
+import org.example.booking_be.dto.responce.SeatStatusResponse;
 import org.example.booking_be.dto.responce.ShowtimeResponse;
-import org.example.booking_be.entity.Showtime;
 import org.example.booking_be.service.ShowTimeService;
 import org.springframework.web.bind.annotation.*;
 
@@ -46,5 +46,37 @@ public class ShowtimeController {
     public ApiResponse<Void> deleteShowtime(@PathVariable String id){
         showTimeService.delete(id);
         return ApiResponse.<Void>builder().result(null).build();
+    }
+    @PostMapping("/{id}/hold")
+    public ApiResponse<Void> holdSeat(
+            @PathVariable String id,
+            @RequestBody HoldSeatRequest request
+    ) {
+        showTimeService.holdSeats(id, request.getSeatCodes(), request.getUserId());
+        return ApiResponse.<Void>builder().build();
+    }
+
+    @PostMapping("/{id}/release")
+    public ApiResponse<Void> releaseSeat(
+            @PathVariable String id,
+            @RequestParam String userId) {
+        showTimeService.releaseSeats(id, userId);
+        return ApiResponse.<Void>builder().build();
+    }
+
+
+    @PostMapping("/{id}/confirm")
+    public ApiResponse<Void> confirmBooking(
+            @PathVariable String id,
+            @RequestBody List<String> seats,
+            @RequestParam String userId) {
+        showTimeService.confirmBooking(id, seats, userId);
+        return ApiResponse.<Void>builder().build();
+    }
+
+    @GetMapping("/{id}/seats")
+    public ApiResponse<List<SeatStatusResponse>> getSeatsStatus(@PathVariable String id) {
+        List<SeatStatusResponse> seats = showTimeService.getSeatsStatus(id);
+        return ApiResponse.<List<SeatStatusResponse>>builder().result(seats).build();
     }
 }
