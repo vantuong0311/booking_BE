@@ -49,8 +49,7 @@ public class DataInitializer {
             if (bookingRepo.count() == 0)
 //                bookingRepo.save(new Booking("1","1","1", null,50, BookingStatus.PAID, LocalDateTime.now()));
             {
-                Booking bk = new Booking("1","1","1", null,50, BookingStatus.PAID, LocalDateTime.now());
-                Booking bks = new Booking("2","2","2", List.of("1","2"), 50, BookingStatus.PAID, LocalDateTime.now());
+                Booking bks = new Booking("2","2","2", List.of("1","2"), 50, BookingStatus.PAID, LocalDateTime.now(),null,null);
                 bookingRepo.save(bks);
             }
         };

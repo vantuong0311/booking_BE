@@ -1,18 +1,21 @@
 package org.example.booking_be.service;
 
 import lombok.AccessLevel;
-import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.example.booking_be.dto.request.ShowTimeCreateRequest;
 import org.example.booking_be.dto.request.ShowtimeUpdateRequest;
+import org.example.booking_be.dto.responce.SeatStatusResponse;
 import org.example.booking_be.dto.responce.ShowtimeResponse;
 import org.example.booking_be.entity.HoldingSeat;
+import org.example.booking_be.entity.Seat;
 import org.example.booking_be.entity.Showtime;
 import org.example.booking_be.enums.ErrorCode;
 import org.example.booking_be.exception.AppException;
 import org.example.booking_be.mapper.ShowtimeMapper;
+import org.example.booking_be.reponsitory.SeatReponsitory;
 import org.example.booking_be.reponsitory.ShowtimeReponsitory;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -27,6 +30,9 @@ import java.util.stream.Collectors;
 public class ShowTimeService {
     ShowtimeReponsitory showtimeReponsitory;
     ShowtimeMapper showtimeMapper;
+    final SimpMessagingTemplate messagingTemplate;
+    SeatReponsitory seatRepository;
+
     public ShowtimeResponse createShowTime(ShowTimeCreateRequest request){
         Showtime showtime = showtimeMapper.toShowTime(request);
         showtime.setBookedSeats(new ArrayList<>());
@@ -55,13 +61,8 @@ public class ShowTimeService {
         showtimeReponsitory.delete(showtime);
     }
     /* ================= HOLD SEAT ================= */
-    public void holdSeats(
-            String showtimeId,
-            List<String> seatCodes,
-            String userId
-    ) {
+    public void holdSeats(String showtimeId, List<String> seatCodes, String userId) {
         Showtime showtime = getShowtime(showtimeId);
-
         removeExpiredHoldingSeats(showtime);
 
         checkBookedSeats(showtime, seatCodes);
@@ -75,44 +76,57 @@ public class ShowTimeService {
         }
 
         showtimeReponsitory.save(showtime);
+
+        // 🔥 REALTIME PUSH
+        messagingTemplate.convertAndSend(
+                "/topic/showtime/" + showtimeId + "/seats",
+                showtime
+        );
     }
+
+    public void releaseSeats(String showtimeId, String userId) {
+        Showtime showtime = getShowtime(showtimeId);
+
+        showtime.getHoldingSeats()
+                .removeIf(h -> h.getUserId().equals(userId));
+
+        showtimeReponsitory.save(showtime);
+
+        messagingTemplate.convertAndSend(
+                "/topic/showtime/" + showtimeId + "/seats",
+                showtime
+        );
+    }
+
+
 
     /* ================= CONFIRM BOOKING ================= */
 
-    public void confirmBooking(
-            String showtimeId,
-            List<String> seatCodes,
-            String userId
-    ) {
+    public void confirmBooking(String showtimeId, List<String> seatCodes, String userId) {
         Showtime showtime = getShowtime(showtimeId);
-
         removeExpiredHoldingSeats(showtime);
 
-        // chỉ cho thanh toán ghế user đang giữ
         for (String seat : seatCodes) {
             boolean valid = showtime.getHoldingSeats().stream()
-                    .anyMatch(h ->
-                            h.getSeatCode().equals(seat)
-                                    && h.getUserId().equals(userId)
-                    );
+                    .anyMatch(h -> h.getSeatCode().equals(seat)
+                            && h.getUserId().equals(userId));
 
-            if (!valid) {
-                throw new AppException(ErrorCode.SEAT_NOT_HELD);
-            }
+            if (!valid) throw new AppException(ErrorCode.SEAT_NOT_HELD);
         }
 
-        // chuyển sang booked
         showtime.getBookedSeats().addAll(seatCodes);
-
-        // xoá holding seat
         showtime.getHoldingSeats()
-                .removeIf(h ->
-                        seatCodes.contains(h.getSeatCode())
-                                && h.getUserId().equals(userId)
-                );
+                .removeIf(h -> seatCodes.contains(h.getSeatCode())
+                        && h.getUserId().equals(userId));
 
         showtimeReponsitory.save(showtime);
+
+        messagingTemplate.convertAndSend(
+                "/topic/showtime/" + showtimeId + "/seats",
+                showtime
+        );
     }
+
 
     /* ================= PRIVATE METHODS ================= */
 
@@ -139,9 +153,45 @@ public class ShowTimeService {
 
     private void removeExpiredHoldingSeats(Showtime showtime) {
         LocalDateTime now = LocalDateTime.now();
-        showtime.getHoldingSeats()
-                .removeIf(h -> h.getHoldUntil().isBefore(now));
+        boolean removed = showtime.getHoldingSeats().removeIf(h -> h.getHoldUntil().isBefore(now));
+        if (removed) {
+            showtimeReponsitory.save(showtime); // cập nhật DB
+            // gửi WebSocket cập nhật realtime
+            messagingTemplate.convertAndSend(
+                    "/topic/showtime/" + showtime.getId() + "/seats",
+                    showtime
+            );
+        }
     }
 
+    public List<SeatStatusResponse> getSeatsStatus(String showtimeId) {
+        Showtime showtime = getShowtime(showtimeId);
+
+        // Lấy tất cả ghế trong phòng
+        List<Seat> seats = seatRepository.findByRoomId(showtime.getRoomId());
+
+        List<SeatStatusResponse> result = new ArrayList<>();
+        LocalDateTime now = LocalDateTime.now();
+
+        for (Seat seat : seats) {
+            SeatStatusResponse dto = new SeatStatusResponse();
+            dto.setSeatCode(seat.getSeatCode());
+            dto.setType(seat.getType());
+
+            if (showtime.getBookedSeats().contains(seat.getSeatCode())) {
+                dto.setStatus("BOOKED");
+            } else if (showtime.getHoldingSeats().stream()
+                    .anyMatch(h -> h.getSeatCode().equals(seat.getSeatCode())
+                            && h.getHoldUntil().isAfter(now))) {
+                dto.setStatus("HELD");
+            } else {
+                dto.setStatus("AVAILABLE");
+            }
+
+            result.add(dto);
+        }
+
+        return result;
+    }
 
 }
