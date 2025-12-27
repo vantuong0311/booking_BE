@@ -6,7 +6,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.example.booking_be.entity.User;
-//import org.example.booking_be.redis.RedisService;
+import org.example.booking_be.redis.RedisService;
 import org.example.booking_be.reponsitory.UserReponsitory;
 import org.example.booking_be.util.JwtUtil;
 
@@ -24,7 +24,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
     private final UserReponsitory userRepository;
-//    private final RedisService redisService;
+    private final RedisService redisService;
 
     @Override
     protected void doFilterInternal(
@@ -49,11 +49,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
 
-        // 3️⃣ Token đã logout (blacklist)
-//        if (redisService.isAccessTokenBlacklisted(token)) {
-//            filterChain.doFilter(request, response);
-//            return;
-//        }
+//          Token đã logout (blacklist)
+        if (redisService.isAccessTokenBlacklisted(token)) {
+            filterChain.doFilter(request, response);
+            return;
+        }
 
         // 4️⃣ Lấy email từ token
         String email = jwtUtil.extractEmail(token);
