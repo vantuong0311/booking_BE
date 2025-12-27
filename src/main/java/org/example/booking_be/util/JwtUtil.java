@@ -64,18 +64,18 @@ public class JwtUtil {
         return extractAllClaims(token).getSubject();
     }
 
-//    public String extractRole(String token) {
-//        return extractAllClaims(token).get("role", String.class);
-//    }
+    public String extractRole(String token) {
+        return extractAllClaims(token).get("role", String.class);
+    }
 
     public Date extractExpiration(String token) {
         return extractAllClaims(token).getExpiration();
     }
 
-    // ===== REMAINING TIME =====
-//    public long getRemainingTime(String token) {
-//        return extractExpiration(token).getTime() - System.currentTimeMillis();
-//    }
+//     ===== REMAINING TIME =====
+    public long getRemainingTime(String token) {
+        return extractExpiration(token).getTime() - System.currentTimeMillis();
+    }
 
     // ===== PARSE =====
     private Claims extractAllClaims(String token) {

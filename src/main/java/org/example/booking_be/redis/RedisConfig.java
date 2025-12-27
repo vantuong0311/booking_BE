@@ -14,18 +14,15 @@ public class RedisConfig {
     @Bean
     public LettuceConnectionFactory redisConnectionFactory() {
 
-        RedisStandaloneConfiguration redisConfig =
-                new RedisStandaloneConfiguration(
-                        "redis-18103.c239.us-east-1-2.ec2.cloud.redislabs.com",18109
-                );
+        RedisStandaloneConfiguration redisConfig =new RedisStandaloneConfiguration();
 
+        redisConfig.setHostName("redis-18103.c239.us-east-1-2.ec2.cloud.redislabs.com");
+        redisConfig.setPort(18103);
         redisConfig.setUsername("default");
         redisConfig.setPassword("Z383ZMjqNdoJmLwEBtZlSQ1Cgk3WWKSc");
 
         LettuceClientConfiguration clientConfig =
                 LettuceClientConfiguration.builder()
-                        .useSsl()                 // ✅ BẮT BUỘC
-                        .disablePeerVerification()// ✅ Redis Cloud cần
                         .build();
 
         return new LettuceConnectionFactory(redisConfig, clientConfig);
