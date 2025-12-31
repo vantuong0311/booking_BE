@@ -2,8 +2,11 @@ package org.example.booking_be.service;
 
 import lombok.RequiredArgsConstructor;
 
+
+import org.example.booking_be.dto.responce.RegisterResponse;
 import org.example.booking_be.entity.User;
 //import org.example.booking_be.redis.RedisService;
+import org.example.booking_be.mapper.UserMapper;
 import org.example.booking_be.reponsitory.UserReponsitory;
 import org.example.booking_be.util.JwtUtil;
 
@@ -19,6 +22,7 @@ public class AuthService {
     private final UserReponsitory userReponsitory;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
+    private final UserMapper userMapper;
 //    private final RedisService redisService;
 
     // ================= LOGIN =================
@@ -36,6 +40,13 @@ public class AuthService {
                 user.getRole().name()
         );
     }
+//    public User register(RegisterRequest request) {
+//        User user = userMapper.toEntity(request);
+//        user.setPassword(passwordEncoder.encode(request.getPassword()));
+//        return  userReponsitory.save(user);
+//
+//
+//    }
 
     // ================= LOGOUT =================
 //    public void logout(String accessToken) {

@@ -48,20 +48,20 @@ public class UserService {
         userRepository.save(user);
         return userMapper.toResponse(user);
     }
-
-    public UserResponse updateUser(String id, UserUpdateRequest request) {
-        User user = userRepository.findById(id)
-                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND));
-
-        userMapper.updateUser(request, user);
-        userRepository.save(user);
-
-        return userMapper.toResponse(user);
-    }
-
-    public void deleteUser(String id) {
-        User user = userRepository.findById(id)
-                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND));
-        userRepository.delete(user);
-    }
+//
+//    public UserResponse updateUser(String id, UserUpdateRequest request) {
+//        User user = userRepository.findById(id)
+//                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND));
+//
+//        userMapper.updateUser(request, user);
+//        userRepository.save(user);
+//
+//        return userMapper.toResponse(user);
+//    }
+//
+//    public void deleteUser(String id) {
+//        User user = userRepository.findById(id)
+//                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND));
+//        userRepository.delete(user);
+//    }
 }
