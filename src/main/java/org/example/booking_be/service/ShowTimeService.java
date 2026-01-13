@@ -199,4 +199,12 @@ public class ShowTimeService {
                 .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND));
     }
 
+    public List<ShowtimeResponse> getShowtimesByMovieId(String movieId) {
+        List<Showtime> showtimes = showtimeReponsitory.findByMovieId(movieId);
+        return showtimes.stream()
+                .map(showtimeMapper::toResponse)
+                .collect(Collectors.toList());
+    }
+
+
 }

@@ -79,4 +79,17 @@ public class ShowtimeController {
         List<SeatStatusResponse> seats = showTimeService.getSeatsStatus(id);
         return ApiResponse.<List<SeatStatusResponse>>builder().result(seats).build();
     }
+
+    @GetMapping("/movie/{movieId}")
+    public ApiResponse<List<ShowtimeResponse>> getShowtimesByMovieId(
+            @PathVariable String movieId
+    ) {
+        List<ShowtimeResponse> showtimes =
+                showTimeService.getShowtimesByMovieId(movieId);
+
+        return ApiResponse.<List<ShowtimeResponse>>builder()
+                .result(showtimes)
+                .build();
+    }
+
 }
