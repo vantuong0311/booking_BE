@@ -10,7 +10,7 @@ public class JWTConfig {
     @Value("${jwt.secret}")
     private String secret;
     @Value("${jwt.access-expiration}")
-    private long expiration;
+    private long  accessExpiration;
     @Value("${jwt.refresh-expiration}")
     private long refreshExpiration;
 
