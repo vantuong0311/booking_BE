@@ -1,22 +1,24 @@
 package org.example.booking_be.controler;
 
 
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.example.booking_be.dto.ApiResponse;
 import org.example.booking_be.dto.request.LoginRequest;
 
 import org.example.booking_be.dto.request.UserCreateRequest;
 import org.example.booking_be.dto.responce.AuthResponse;
-import org.example.booking_be.dto.responce.RegisterResponse;
+
 import org.example.booking_be.dto.responce.UserResponse;
 import org.example.booking_be.entity.User;
-//import org.example.booking_be.redis.RedisService;
 import org.example.booking_be.redis.RedisService;
 import org.example.booking_be.reponsitory.UserReponsitory;
-import org.example.booking_be.service.AuthService;
 import org.example.booking_be.service.UserService;
 import org.example.booking_be.util.JwtUtil;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseCookie;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
@@ -33,14 +35,17 @@ public class AuthController {
 
     // ================= LOGIN =================
     @PostMapping("/login")
-    public ApiResponse<AuthResponse> login(@RequestBody LoginRequest request) {
-
+    public ApiResponse<AuthResponse> login(
+            @RequestBody LoginRequest request,
+            HttpServletResponse response
+    ) {
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new RuntimeException("User not found"));
+
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             throw new RuntimeException("Wrong password");
         }
-        // Tạo token
+
         String accessToken = jwtUtil.generateAccessToken(
                 user.getEmail(),
                 user.getRole().name()
@@ -48,51 +53,79 @@ public class AuthController {
 
         String refreshToken = jwtUtil.generateRefreshToken(user.getEmail());
 
-        // Lưu refresh token vào Redis
+        // lưu refresh token vào Redis
         redisService.saveRefreshToken(
                 user.getId(),
                 refreshToken,
                 jwtUtil.getRemainingTime(refreshToken)
         );
 
+        // 🔥 set refresh token vào HttpOnly cookie
+        ResponseCookie cookie = ResponseCookie.from("refreshToken", refreshToken)
+                .httpOnly(true)
+                .secure(false) // true khi dùng https
+                .path("/")
+                .maxAge(jwtUtil.getRemainingTime(refreshToken) / 1000)
+                .sameSite("Strict")
+                .build();
+
+        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+
         return ApiResponse.<AuthResponse>builder()
-                .result(new AuthResponse(accessToken, refreshToken))
+                .result(new AuthResponse(accessToken))
                 .build();
     }
 
+
     // ================= LOGOUT =================
     @PostMapping("/logout")
-    public ApiResponse<Void> logout(HttpServletRequest request) {
-
+    public ApiResponse<Void> logout(
+            HttpServletRequest request,
+            HttpServletResponse response
+    ) {
         String authHeader = request.getHeader("Authorization");
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             throw new RuntimeException("Missing token");
         }
 
         String accessToken = authHeader.substring(7);
-
-        if (!jwtUtil.isTokenValid(accessToken)) {
-            throw new RuntimeException("Invalid token");
-        }
-
         long remainingTime = jwtUtil.getRemainingTime(accessToken);
 
         redisService.blacklistAccessToken(accessToken, remainingTime);
 
-        // 🔥 XÓA refresh token
         String email = jwtUtil.extractEmail(accessToken);
         userRepository.findByEmail(email)
                 .ifPresent(user -> redisService.deleteRefreshToken(user.getId()));
+
+        // 🔥 xóa cookie
+        ResponseCookie cookie = ResponseCookie.from("refreshToken", "")
+                .path("/")
+                .maxAge(0)
+                .build();
+
+        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
 
         return ApiResponse.<Void>builder()
                 .message("Logout successfully")
                 .build();
     }
 
-    @PostMapping("/refresh")
-    public ApiResponse<AuthResponse> refresh(@RequestBody String refreshToken) {
 
-        if (!jwtUtil.isTokenValid(refreshToken)) {
+    @PostMapping("/refresh")
+    public ApiResponse<AuthResponse> refresh(HttpServletRequest request) {
+
+        String refreshToken = null;
+
+        if (request.getCookies() != null) {
+            for (Cookie cookie : request.getCookies()) {
+                if ("refreshToken".equals(cookie.getName())) {
+                    refreshToken = cookie.getValue();
+                    break;
+                }
+            }
+        }
+
+        if (refreshToken == null || !jwtUtil.isTokenValid(refreshToken)) {
             throw new RuntimeException("Invalid refresh token");
         }
 
@@ -101,30 +134,21 @@ public class AuthController {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        // kiểm tra refresh token trong Redis
         if (!redisService.isRefreshTokenValid(user.getId(), refreshToken)) {
             throw new RuntimeException("Refresh token revoked");
         }
 
-        String newAccessToken =
-                jwtUtil.generateAccessToken(
-                        user.getEmail(),
-                        user.getRole().name()
-                );
+        String newAccessToken = jwtUtil.generateAccessToken(
+                user.getEmail(),
+                user.getRole().name()
+        );
 
         return ApiResponse.<AuthResponse>builder()
-                .result(new AuthResponse(newAccessToken, refreshToken))
+                .result(new AuthResponse(newAccessToken))
                 .build();
     }
-//    @PostMapping("/register")
-//    public ApiResponse<RegisterResponse> register(
-//            @RequestBody RegisterRequest request
-//    ) {
-//        return ApiResponse.<RegisterResponse>builder()
-//                .result(authService.register(request))
-//                .message("Đăng ký thành công")
-//                .build();
-//    }
+
+
         @PostMapping("/register")
         public ApiResponse<UserResponse> createUser(@RequestBody UserCreateRequest request) {
             return ApiResponse.<UserResponse>builder()

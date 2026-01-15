@@ -31,7 +31,7 @@ public class JwtUtil {
                 .claim("role", role)
                 .setIssuedAt(new Date())
                 .setExpiration(
-                        new Date(System.currentTimeMillis() + jwtConfig.getExpiration())
+                        new Date(System.currentTimeMillis() + jwtConfig.getAccessExpiration())
                 )
                 .signWith(getSigningKey(), SignatureAlgorithm.HS256)
                 .compact();
@@ -54,7 +54,7 @@ public class JwtUtil {
         try {
             extractAllClaims(token);
             return true;
-        } catch (ExpiredJwtException e) {
+        } catch (JwtException | IllegalArgumentException e) {
             return false;
         }
     }
@@ -85,4 +85,5 @@ public class JwtUtil {
                 .parseClaimsJws(token)
                 .getBody();
     }
+
 }
