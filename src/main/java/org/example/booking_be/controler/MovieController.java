@@ -7,6 +7,7 @@ import org.example.booking_be.dto.request.MovieUpdateRequest;
 import org.example.booking_be.dto.responce.MovieResponse;
 import org.example.booking_be.service.MovieService;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -18,19 +19,24 @@ public class MovieController {
     private final MovieService movieService;
 
     // ADMIN
-    @PostMapping
-    public ApiResponse<MovieResponse> create(@RequestBody MovieCreateRequest request){
+    @PostMapping(consumes = "multipart/form-data")
+    public ApiResponse<MovieResponse> create(@ModelAttribute MovieCreateRequest request){
+
+
         return ApiResponse.<MovieResponse>builder()
                 .result(movieService.create(request))
                 .message("Create movie successfully")
                 .build();
     }
 
-    @PutMapping("/{id}")
-    public ApiResponse<MovieResponse> update(@PathVariable String id,
-                                             @RequestBody MovieUpdateRequest request){
+    @PutMapping(value = "/{id}",consumes = "multipart/form-data")
+    public ApiResponse<MovieResponse> update(
+            @PathVariable String id,
+            @ModelAttribute MovieUpdateRequest request,
+            @RequestPart(value = "poster", required = false) MultipartFile poster
+    ) {
         return ApiResponse.<MovieResponse>builder()
-                .result(movieService.update(id, request))
+                .result(movieService.update(id, request, poster))
                 .message("Update movie successfully")
                 .build();
     }
