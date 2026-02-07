@@ -2,6 +2,7 @@ package org.example.booking_be.dto.request;
 
 import lombok.Data;
 import org.example.booking_be.enums.MovieStatus;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
 
@@ -12,7 +13,8 @@ public class MovieUpdateRequest {
     private int duration;
     private LocalDate releaseDate;
 
-    private String posterUrl;
+    private MultipartFile posterUrl;
+    private String posterPublicId;
     private String trailerUrl;
 
     private String genreId;

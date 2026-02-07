@@ -11,11 +11,19 @@ import org.mapstruct.Mapping;
 @Mapper(componentModel = "spring")
 public interface MovieMapper {
 
+    // CREATE: OK, ignore id
     @Mapping(target = "id", ignore = true)
+    @Mapping(target = "posterUrl", ignore = true)
+    @Mapping(target = "posterPublicId", ignore = true)
     Movie toMovie(MovieCreateRequest request);
+
+    // 🔥 RESPONSE: KHÔNG ĐƯỢC ignore id
 
     MovieResponse toMovieResponse(Movie movie);
 
+    // UPDATE: OK, ignore id
     @Mapping(target = "id", ignore = true)
+    @Mapping(target = "posterUrl", ignore = true)
+    @Mapping(target = "posterPublicId", ignore = true)
     void updateMovie(MovieUpdateRequest request, @MappingTarget Movie movie);
 }

@@ -28,7 +28,10 @@ public class SecurityConfig {
                                 "/genres/**",
                                 "/auth/login",
                                 "/auth/register",
-                                "auth/refresh"
+                                "/auth/refresh",
+                                "/auth/logout",
+                                "/genres/**",
+                                "api/movies/**"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )

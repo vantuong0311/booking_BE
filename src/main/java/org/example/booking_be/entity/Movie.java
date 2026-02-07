@@ -26,7 +26,9 @@ public class Movie {
     private LocalDate releaseDate;
 
     private String posterUrl;
+    private String posterPublicId;
     private String trailerUrl;
+
 
     private String genreId;
 

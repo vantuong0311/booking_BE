@@ -63,13 +63,15 @@ public class AuthController {
         // 🔥 set refresh token vào HttpOnly cookie
         ResponseCookie cookie = ResponseCookie.from("refreshToken", refreshToken)
                 .httpOnly(true)
-                .secure(false) // true khi dùng https
-                .path("/")
-                .maxAge(jwtUtil.getRemainingTime(refreshToken) / 1000)
+                .secure(false)
                 .sameSite("Strict")
+                .path("/")
+                .domain("localhost")     // 🔥 BẮT BUỘC
+                .maxAge(jwtUtil.getRemainingTime(refreshToken) / 1000)
                 .build();
 
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+
 
         return ApiResponse.<AuthResponse>builder()
                 .result(new AuthResponse(accessToken))
@@ -83,27 +85,36 @@ public class AuthController {
             HttpServletRequest request,
             HttpServletResponse response
     ) {
-        String authHeader = request.getHeader("Authorization");
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            throw new RuntimeException("Missing token");
+        // 1️⃣ Lấy refresh token từ cookie
+        String refreshToken = null;
+        if (request.getCookies() != null) {
+            for (Cookie cookie : request.getCookies()) {
+                if ("refreshToken".equals(cookie.getName())) {
+                    refreshToken = cookie.getValue();
+                    break;
+                }
+            }
         }
 
-        String accessToken = authHeader.substring(7);
-        long remainingTime = jwtUtil.getRemainingTime(accessToken);
+        // 2️⃣ Xoá refresh token trong Redis
+        if (refreshToken != null && jwtUtil.isTokenValid(refreshToken)) {
+            String email = jwtUtil.extractEmail(refreshToken);
+            userRepository.findByEmail(email)
+                    .ifPresent(user ->
+                            redisService.deleteRefreshToken(user.getId())
+                    );
+        }
 
-        redisService.blacklistAccessToken(accessToken, remainingTime);
-
-        String email = jwtUtil.extractEmail(accessToken);
-        userRepository.findByEmail(email)
-                .ifPresent(user -> redisService.deleteRefreshToken(user.getId()));
-
-        // 🔥 xóa cookie
-        ResponseCookie cookie = ResponseCookie.from("refreshToken", "")
-                .path("/")
+        // 3️⃣ XOÁ COOKIE — PHẢI GIỐNG 100%
+        ResponseCookie deleteCookie = ResponseCookie.from("refreshToken", "")
+                .httpOnly(true)
+                .secure(false) // ⚠️ GIỐNG LOGIN
+                .sameSite("Strict") // ⚠️ GIỐNG LOGIN
+                .path("/") // ⚠️ GIỐNG LOGIN
                 .maxAge(0)
                 .build();
 
-        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+        response.addHeader(HttpHeaders.SET_COOKIE, deleteCookie.toString());
 
         return ApiResponse.<Void>builder()
                 .message("Logout successfully")
@@ -112,7 +123,10 @@ public class AuthController {
 
 
     @PostMapping("/refresh")
-    public ApiResponse<AuthResponse> refresh(HttpServletRequest request) {
+    public ApiResponse<AuthResponse> refresh(
+            HttpServletRequest request,
+            HttpServletResponse response
+    ) {
 
         String refreshToken = null;
 
@@ -134,9 +148,37 @@ public class AuthController {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
+        // kiểm tra refresh token trong redis
         if (!redisService.isRefreshTokenValid(user.getId(), refreshToken)) {
             throw new RuntimeException("Refresh token revoked");
         }
+
+        // ================= ROTATE REFRESH TOKEN =================
+
+        // 1. xóa refresh token cũ
+        redisService.deleteRefreshToken(user.getId());
+
+        // 2. tạo refresh token mới
+        String newRefreshToken = jwtUtil.generateRefreshToken(user.getEmail());
+
+        redisService.saveRefreshToken(
+                user.getId(),
+                newRefreshToken,
+                jwtUtil.getRemainingTime(newRefreshToken)
+        );
+
+        // 3. set lại cookie refresh token
+        ResponseCookie cookie = ResponseCookie.from("refreshToken", newRefreshToken)
+                .httpOnly(true)
+                .secure(false) // true nếu dùng https
+                .sameSite("Strict")
+                .path("/")
+                .maxAge(jwtUtil.getRemainingTime(newRefreshToken) / 1000)
+                .build();
+
+        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+
+        // ================= CẤP ACCESS TOKEN MỚI =================
 
         String newAccessToken = jwtUtil.generateAccessToken(
                 user.getEmail(),
